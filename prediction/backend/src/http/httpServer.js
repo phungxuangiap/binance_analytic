@@ -1,6 +1,8 @@
 const http = require('http');
 const { getCandles } = require('../db/candleRepository');
+const { getNews } = require('../db/newsRepository');
 const { getActivePredictions } = require('../db/predictionRepository');
+const { getTrades } = require('../db/tradeRepository');
 const { INTERVAL, SYMBOLS } = require('../config/symbols');
 
 const ALLOWED_SYMBOLS = new Set(SYMBOLS.map(({ symbol }) => symbol));
@@ -79,6 +81,44 @@ function createHttpServer() {
       } catch (error) {
         console.error('[http] failed to load predictions:', error.message);
         writeJson(response, 500, { error: 'Failed to load predictions' });
+      }
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/news') {
+      const symbol = url.searchParams.get('symbol');
+      const limit = parseLimit(url.searchParams.get('limit'));
+
+      if (!symbol || !ALLOWED_SYMBOLS.has(symbol)) {
+        writeJson(response, 400, { error: 'Invalid symbol' });
+        return;
+      }
+
+      try {
+        const news = await getNews({ symbol, limit });
+        writeJson(response, 200, news);
+      } catch (error) {
+        console.error('[http] failed to load news:', error.message);
+        writeJson(response, 500, { error: 'Failed to load news' });
+      }
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/trades') {
+      const symbol = url.searchParams.get('symbol');
+      const limit = parseLimit(url.searchParams.get('limit'));
+
+      if (!symbol || !ALLOWED_SYMBOLS.has(symbol)) {
+        writeJson(response, 400, { error: 'Invalid symbol' });
+        return;
+      }
+
+      try {
+        const trades = await getTrades({ symbol, limit });
+        writeJson(response, 200, trades);
+      } catch (error) {
+        console.error('[http] failed to load trades:', error.message);
+        writeJson(response, 500, { error: 'Failed to load trades' });
       }
       return;
     }

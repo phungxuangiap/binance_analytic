@@ -1,7 +1,7 @@
-import type { MarketSymbol, TradingEvent } from '../types/market';
+import type { MarketSymbol, TradeItem } from '../types/market';
 
 type TradingPanelProps = {
-  events: TradingEvent[];
+  events: TradeItem[];
   selectedSymbol: MarketSymbol;
 };
 
@@ -10,25 +10,51 @@ function formatSigned(value: number, fractionDigits = 2) {
   return `${sign}${value.toFixed(fractionDigits)}`;
 }
 
+function formatPrice(value?: number) {
+  return typeof value === 'number' ? value.toFixed(2) : '--';
+}
+
+function getBuyTime(trade: TradeItem) {
+  return trade.position_side === 'LONG' ? trade.entry_time : trade.exit_time;
+}
+
+function getSellTime(trade: TradeItem) {
+  return trade.position_side === 'LONG' ? trade.exit_time : trade.entry_time;
+}
+
+function getBuyPrice(trade: TradeItem) {
+  return trade.position_side === 'LONG' ? trade.entry_price : trade.exit_price;
+}
+
+function getSellPrice(trade: TradeItem) {
+  return trade.position_side === 'LONG' ? trade.exit_price : trade.entry_price;
+}
+
+function formatTime(value?: string) {
+  return value ? new Date(value).toLocaleTimeString() : 'waiting...';
+}
+
 export function TradingPanel({ events, selectedSymbol }: TradingPanelProps) {
-  const symbolEvents = events.filter((event) => event.symbol === selectedSymbol).slice(-12).reverse();
+  const symbolTrades = events.filter((event) => event.symbol === selectedSymbol).slice(-12).reverse();
 
   return (
     <section className="sidePanel">
       <div className="sidePanelHeader">Trading Time</div>
-      {symbolEvents.length === 0 ? (
-        <p className="emptyState">Waiting for trading events...</p>
-      ) : symbolEvents.map((event) => (
-        <article className={`feedItem ${event.action.toLowerCase()}`} key={event.id}>
-          <strong>{event.action} · {event.prediction_direction}</strong>
-          <span>
-            {event.transition} · {new Date(event.time).toLocaleTimeString()}
-            {event.transition === 'mounting->mounted' && typeof event.pnl === 'number' && typeof event.pnlPercent === 'number'
-              ? ` · P/L ${formatSigned(event.pnl)} (${formatSigned(event.pnlPercent, 3)}%)`
-              : ''}
-          </span>
-          {typeof event.price === 'number' ? <span>price {event.price.toFixed(2)}</span> : null}
-          <span>prediction {event.news_id}</span>
+      {symbolTrades.length === 0 ? (
+        <p className="emptyState">Waiting for trading records...</p>
+      ) : symbolTrades.map((trade) => (
+        <article className={`feedItem ${trade.position_side.toLowerCase()}`} key={trade.news_id}>
+          <strong>{trade.position_side} · {trade.status}</strong>
+          <span>buy {formatTime(getBuyTime(trade))} · {formatPrice(getBuyPrice(trade))}</span>
+          <span>sell {formatTime(getSellTime(trade))} · {formatPrice(getSellPrice(trade))}</span>
+          {trade.status === 'closed' && typeof trade.pnl === 'number' && typeof trade.pnl_percent === 'number' ? (
+            <span>
+              {trade.result} · P/L {formatSigned(trade.pnl)} USDT ({formatSigned(trade.pnl_percent, 3)}%)
+            </span>
+          ) : (
+            <span>waiting exit...</span>
+          )}
+          <span>prediction {trade.news_id}</span>
         </article>
       ))}
     </section>

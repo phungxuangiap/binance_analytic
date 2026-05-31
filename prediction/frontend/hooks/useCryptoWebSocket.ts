@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { CandleMessage, ConnectionStatus, MarketMessage, MarketSymbol, NewsItem, PredictionItem, PredictionLifecycleStatus, TickerMessage, TradingEvent } from '../types/market';
+import type { CandleMessage, ConnectionStatus, MarketMessage, MarketSymbol, NewsItem, PredictionItem, PredictionLifecycleStatus, TickerMessage, TradeItem } from '../types/market';
 
 const RECONNECT_DELAY_MS = 3000;
 const CANDLE_LIMIT = 300;
@@ -15,7 +15,7 @@ function isMarketMessage(value: unknown): value is MarketMessage {
 
   const message = value as Partial<MarketMessage>;
 
-  if ((message.type === 'candle' || message.type === 'ticker' || message.type === 'news' || message.type === 'prediction' || message.type === 'prediction_deleted') && SYMBOLS.includes(message.symbol as MarketSymbol)) {
+  if ((message.type === 'candle' || message.type === 'ticker' || message.type === 'news' || message.type === 'prediction' || message.type === 'prediction_deleted' || message.type === 'trade') && SYMBOLS.includes(message.symbol as MarketSymbol)) {
     return true;
   }
 
@@ -82,35 +82,32 @@ function getPredictionLifecycleStatus(prediction: PredictionItem, now: number): 
   return 'mounted';
 }
 
-function getTradingAction(prediction: PredictionItem, transition: TradingEvent['transition']) {
-  if (transition === 'unmount->mounting') {
-    return prediction.predicted_direction === 'UP' ? 'BUY' : 'SELL';
+function mergeNewsList(currentNews: NewsItem[], newsItem: NewsItem) {
+  const existingIndex = currentNews.findIndex((item) => item.id === newsItem.id);
+
+  if (existingIndex >= 0) {
+    return [
+      ...currentNews.slice(0, existingIndex),
+      newsItem,
+      ...currentNews.slice(existingIndex + 1),
+    ].slice(-FEED_LIMIT);
   }
 
-  return prediction.predicted_direction === 'UP' ? 'SELL' : 'BUY';
+  return [...currentNews, newsItem].slice(-FEED_LIMIT);
 }
 
-function getCurrentSymbolPrice(symbol: MarketSymbol, tickers: Partial<Record<MarketSymbol, TickerMessage>>, candles: Record<MarketSymbol, CandleMessage[]>) {
-  const tickerPrice = tickers[symbol]?.lastPrice;
+function mergeTradeList(currentTrades: TradeItem[], trade: TradeItem) {
+  const existingIndex = currentTrades.findIndex((item) => item.news_id === trade.news_id);
 
-  if (typeof tickerPrice === 'number' && Number.isFinite(tickerPrice)) {
-    return tickerPrice;
+  if (existingIndex >= 0) {
+    return [
+      ...currentTrades.slice(0, existingIndex),
+      trade,
+      ...currentTrades.slice(existingIndex + 1),
+    ].slice(-FEED_LIMIT);
   }
 
-  const latestCandle = candles[symbol].at(-1);
-
-  return latestCandle?.close;
-}
-
-function getProfitLoss(prediction: PredictionItem, entryPrice: number, exitPrice: number) {
-  const pnl = prediction.predicted_direction === 'UP'
-    ? exitPrice - entryPrice
-    : entryPrice - exitPrice;
-
-  return {
-    pnl,
-    pnlPercent: entryPrice === 0 ? 0 : (pnl / entryPrice) * 100,
-  };
+  return [...currentTrades, trade].slice(-FEED_LIMIT);
 }
 
 export function useCryptoWebSocket() {
@@ -122,7 +119,7 @@ export function useCryptoWebSocket() {
   const [tickers, setTickers] = useState<Partial<Record<MarketSymbol, TickerMessage>>>({});
   const [news, setNews] = useState<NewsItem[]>([]);
   const [predictions, setPredictions] = useState<PredictionItem[]>([]);
-  const [tradingEvents, setTradingEvents] = useState<TradingEvent[]>([]);
+  const [trades, setTrades] = useState<TradeItem[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const manuallyClosedRef = useRef(false);
@@ -163,9 +160,43 @@ export function useCryptoWebSocket() {
       });
     }
 
+    async function loadNews(symbol: MarketSymbol) {
+      const response = await fetch(`${apiUrl}/api/news?symbol=${symbol}&limit=${FEED_LIMIT}`, {
+        signal: abortController.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load ${symbol} news: ${response.status}`);
+      }
+
+      const loadedNews = await response.json() as NewsItem[];
+      setNews((current) => {
+        const otherNews = current.filter((newsItem) => newsItem.symbol !== symbol);
+        return [...otherNews, ...loadedNews].slice(-FEED_LIMIT);
+      });
+    }
+
+    async function loadTrades(symbol: MarketSymbol) {
+      const response = await fetch(`${apiUrl}/api/trades?symbol=${symbol}&limit=${FEED_LIMIT}`, {
+        signal: abortController.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load ${symbol} trades: ${response.status}`);
+      }
+
+      const loadedTrades = await response.json() as TradeItem[];
+      setTrades((current) => {
+        const otherTrades = current.filter((trade) => trade.symbol !== symbol);
+        return [...otherTrades, ...loadedTrades].slice(-FEED_LIMIT);
+      });
+    }
+
     Promise.all([
       ...SYMBOLS.map(loadHistoricalCandles),
       ...SYMBOLS.map(loadActivePredictions),
+      ...SYMBOLS.map(loadNews),
+      ...SYMBOLS.map(loadTrades),
     ]).catch((error) => {
       if (error.name !== 'AbortError') {
         console.error('Failed to load historical market data', error);
@@ -181,75 +212,22 @@ export function useCryptoWebSocket() {
     const interval = window.setInterval(() => {
       const now = Date.now();
 
-      setPredictions((currentPredictions) => {
-        const nextTradingEvents: TradingEvent[] = [];
-        const nextPredictions = currentPredictions.map((prediction) => {
-          if (prediction.status === 'deleted') {
-            return prediction;
-          }
-
-          const lifecycleStatus = getPredictionLifecycleStatus(prediction, now);
-          const previousLifecycleStatus = prediction.lifecycleStatus;
-
-          if (previousLifecycleStatus === 'unmount' && lifecycleStatus === 'mounting') {
-            const price = getCurrentSymbolPrice(prediction.symbol, tickers, candles);
-
-            nextTradingEvents.push({
-              id: `${prediction.news_id}:unmount->mounting`,
-              news_id: prediction.news_id,
-              symbol: prediction.symbol,
-              action: getTradingAction(prediction, 'unmount->mounting'),
-              prediction_direction: prediction.predicted_direction,
-              transition: 'unmount->mounting',
-              time: new Date(now).toISOString(),
-              price,
-            });
-          }
-
-          if (previousLifecycleStatus === 'mounting' && lifecycleStatus === 'mounted') {
-            const price = getCurrentSymbolPrice(prediction.symbol, tickers, candles);
-            const entryEvent = tradingEvents.find((event) => event.news_id === prediction.news_id && event.transition === 'unmount->mounting');
-            const entryPrice = entryEvent?.price;
-            const profitLoss = typeof entryPrice === 'number' && typeof price === 'number' ? getProfitLoss(prediction, entryPrice, price) : undefined;
-
-            nextTradingEvents.push({
-              id: `${prediction.news_id}:mounting->mounted`,
-              news_id: prediction.news_id,
-              symbol: prediction.symbol,
-              action: getTradingAction(prediction, 'mounting->mounted'),
-              prediction_direction: prediction.predicted_direction,
-              transition: 'mounting->mounted',
-              time: new Date(now).toISOString(),
-              price,
-              entryPrice,
-              exitPrice: price,
-              pnl: profitLoss?.pnl,
-              pnlPercent: profitLoss?.pnlPercent,
-            });
-          }
-
-          return {
-            ...prediction,
-            lifecycleStatus,
-          };
-        });
-
-        if (nextTradingEvents.length > 0) {
-          setTradingEvents((currentEvents) => {
-            const existingIds = new Set(currentEvents.map((event) => event.id));
-            const newEvents = nextTradingEvents.filter((event) => !existingIds.has(event.id));
-            return [...currentEvents, ...newEvents].slice(-FEED_LIMIT);
-          });
+      setPredictions((currentPredictions) => currentPredictions.map((prediction) => {
+        if (prediction.status === 'deleted') {
+          return prediction;
         }
 
-        return nextPredictions;
-      });
+        return {
+          ...prediction,
+          lifecycleStatus: getPredictionLifecycleStatus(prediction, now),
+        };
+      }));
     }, 1000);
 
     return () => {
       window.clearInterval(interval);
     };
-  }, [candles, tickers, tradingEvents]);
+  }, []);
 
   useEffect(() => {
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:4001';
@@ -287,7 +265,7 @@ export function useCryptoWebSocket() {
 
           if (parsed.type === 'news') {
             console.info('[news:item]', parsed);
-            setNews((current) => [...current, parsed].slice(-FEED_LIMIT));
+            setNews((current) => mergeNewsList(current, parsed));
           }
 
           if (parsed.type === 'prediction') {
@@ -298,6 +276,11 @@ export function useCryptoWebSocket() {
           if (parsed.type === 'prediction_deleted') {
             console.info('[prediction:deleted]', parsed);
             setPredictions((current) => markPredictionDeleted(current, parsed.news_id, parsed.prediction, parsed.reason));
+          }
+
+          if (parsed.type === 'trade') {
+            console.info('[trade:item]', parsed);
+            setTrades((current) => mergeTradeList(current, parsed));
           }
         } catch (error) {
           console.error('Failed to parse backend WebSocket message', error);
@@ -338,6 +321,6 @@ export function useCryptoWebSocket() {
     tickers,
     news,
     predictions,
-    tradingEvents,
+    tradingEvents: trades,
   };
 }

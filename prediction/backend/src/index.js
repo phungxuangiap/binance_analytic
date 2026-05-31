@@ -15,10 +15,20 @@ async function start() {
 
   const httpServer = createHttpServer();
   const wsServer = createWebSocketServer({ server: httpServer });
+  const latestPrices = new Map();
+
+  function getCurrentPrice(symbol) {
+    return latestPrices.get(symbol);
+  }
 
   const binanceWebSocket = createBinanceWebSocket({
     onMarketData: (message) => {
+      if (message.type === 'ticker') {
+        latestPrices.set(message.symbol, message.lastPrice);
+      }
+
       if (message.type === 'candle') {
+        latestPrices.set(message.symbol, message.close);
         upsertCandle(message).catch((error) => {
           console.error(`[postgres] failed to persist ${message.symbol} candle:`, error.message);
         });
@@ -29,6 +39,7 @@ async function start() {
   });
   const newsPredictionLoop = createNewsPredictionLoop({
     broadcast: wsServer.broadcast,
+    getCurrentPrice,
   });
 
   httpServer.listen(PORT, () => {

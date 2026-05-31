@@ -1,4 +1,6 @@
 const { createFakeNews } = require('./fakeNewsGenerator');
+const { insertNews } = require('../db/newsRepository');
+const { closeTrade, openTradeFromPrediction } = require('../db/tradeRepository');
 const { createFakePrediction } = require('../prediction/fakePredictor');
 const { resolvePrediction } = require('../prediction/predictionResolver');
 
@@ -12,8 +14,68 @@ function getNextDelayMs() {
   return Math.floor(minDelay + Math.random() * (maxDelay - minDelay + 1));
 }
 
-function createNewsPredictionLoop({ broadcast }) {
+function createNewsPredictionLoop({ broadcast, getCurrentPrice }) {
   let timer = null;
+  const tradeTimers = new Map();
+
+  function clearTradeTimers(newsId) {
+    const timers = tradeTimers.get(newsId) || [];
+
+    for (const tradeTimer of timers) {
+      clearTimeout(tradeTimer);
+    }
+
+    tradeTimers.delete(newsId);
+  }
+
+  function scheduleTradeTimer(newsId, time, callback) {
+    const delayMs = Math.max(0, new Date(time).getTime() - Date.now());
+    const tradeTimer = setTimeout(async () => {
+      const timers = tradeTimers.get(newsId) || [];
+      tradeTimers.set(newsId, timers.filter((timerItem) => timerItem !== tradeTimer));
+      await callback();
+    }, delayMs);
+
+    tradeTimers.set(newsId, [...(tradeTimers.get(newsId) || []), tradeTimer]);
+  }
+
+  function scheduleTrade(prediction) {
+    clearTradeTimers(prediction.news_id);
+
+    scheduleTradeTimer(prediction.news_id, prediction.predicted_affect_start_time, async () => {
+      try {
+        const entryPrice = getCurrentPrice(prediction.symbol);
+        const trade = await openTradeFromPrediction({
+          prediction,
+          entryTime: new Date().toISOString(),
+          entryPrice,
+        });
+
+        if (trade) {
+          broadcast(trade);
+        }
+      } catch (error) {
+        console.error(`[trade] failed to open ${prediction.news_id}:`, error.message);
+      }
+    });
+
+    scheduleTradeTimer(prediction.news_id, prediction.predicted_affect_end_time, async () => {
+      try {
+        const exitPrice = getCurrentPrice(prediction.symbol);
+        const trade = await closeTrade({
+          newsId: prediction.news_id,
+          exitTime: new Date().toISOString(),
+          exitPrice,
+        });
+
+        if (trade) {
+          broadcast(trade);
+        }
+      } catch (error) {
+        console.error(`[trade] failed to close ${prediction.news_id}:`, error.message);
+      }
+    });
+  }
 
   async function publish() {
     try {
@@ -41,12 +103,18 @@ function createNewsPredictionLoop({ broadcast }) {
         return;
       }
 
+      const persistedNews = await insertNews(news);
+
       console.log(`[news] generated ${news.symbol} ${impactType} news ${news.id}`);
       console.log(`[prediction] resolved ${prediction.symbol} ${prediction.predicted_direction} ${prediction.predicted_time_horizon} impact=${prediction.impact_score} events=${predictionEvents.length}`);
 
-      broadcast(news);
+      broadcast(persistedNews);
       for (const event of predictionEvents) {
         broadcast(event);
+
+        if (event.type === 'prediction' && event.status !== 'deleted') {
+          scheduleTrade(event);
+        }
       }
       scheduleNext();
     } catch (error) {
@@ -70,6 +138,13 @@ function createNewsPredictionLoop({ broadcast }) {
       clearTimeout(timer);
       timer = null;
     }
+
+    for (const timers of tradeTimers.values()) {
+      for (const tradeTimer of timers) {
+        clearTimeout(tradeTimer);
+      }
+    }
+    tradeTimers.clear();
   }
 
   return {

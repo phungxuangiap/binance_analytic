@@ -89,23 +89,29 @@ export type PredictionRectangle = {
 };
 
 export type TradingAction = 'BUY' | 'SELL';
+export type PositionSide = 'LONG' | 'SHORT';
+export type TradeStatus = 'open' | 'closed';
+export type TradeResult = 'WIN' | 'LOSS' | 'BREAKEVEN';
 
-export type TradingEvent = {
-  id: string;
+export type TradeItem = {
+  type: 'trade';
   news_id: string;
   symbol: MarketSymbol;
-  action: TradingAction;
   prediction_direction: PredictionDirection;
-  transition: 'unmount->mounting' | 'mounting->mounted';
-  time: string;
-  price?: number;
-  entryPrice?: number;
-  exitPrice?: number;
+  position_side: PositionSide;
+  entry_action: TradingAction;
+  exit_action?: TradingAction;
+  entry_time: string;
+  exit_time?: string;
+  entry_price?: number;
+  exit_price?: number;
   pnl?: number;
-  pnlPercent?: number;
+  pnl_percent?: number;
+  result?: TradeResult;
+  status: TradeStatus;
 };
 
-export type MarketMessage = CandleMessage | TickerMessage | NewsItem | PredictionItem | PredictionDeletedMessage;
+export type MarketMessage = CandleMessage | TickerMessage | NewsItem | PredictionItem | PredictionDeletedMessage | TradeItem;
 
 export type ChartCandle = {
   time: number;

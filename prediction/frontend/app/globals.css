@@ -288,6 +288,14 @@ strong {
   border-left: 8px solid #c72530;
 }
 
+.feedItem.long {
+  border-left: 8px solid #16a365;
+}
+
+.feedItem.short {
+  border-left: 8px solid #c72530;
+}
+
 .feedItem.edited {
   background: #fff7d6;
 }

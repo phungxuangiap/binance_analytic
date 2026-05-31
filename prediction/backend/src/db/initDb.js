@@ -53,6 +53,53 @@ async function createSchema() {
     CREATE INDEX IF NOT EXISTS predictions_symbol_status_time_idx
     ON predictions (symbol, status, predicted_affect_start_time, predicted_affect_end_time)
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS news (
+      id TEXT PRIMARY KEY,
+      symbol TEXT NOT NULL,
+      title TEXT NOT NULL,
+      source TEXT NOT NULL,
+      time TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS news_symbol_time_idx
+    ON news (symbol, time DESC)
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS trades (
+      news_id TEXT PRIMARY KEY,
+      symbol TEXT NOT NULL,
+      prediction_direction TEXT NOT NULL,
+      position_side TEXT NOT NULL,
+      entry_action TEXT NOT NULL,
+      exit_action TEXT,
+      entry_time TIMESTAMPTZ NOT NULL,
+      exit_time TIMESTAMPTZ,
+      entry_price NUMERIC,
+      exit_price NUMERIC,
+      pnl NUMERIC,
+      pnl_percent NUMERIC,
+      result TEXT,
+      status TEXT NOT NULL DEFAULT 'open',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS trades_symbol_entry_time_idx
+    ON trades (symbol, entry_time DESC)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS trades_symbol_status_entry_time_idx
+    ON trades (symbol, status, entry_time DESC)
+  `);
 }
 
 async function initDb() {

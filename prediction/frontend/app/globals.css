@@ -1,0 +1,338 @@
+:root {
+  color-scheme: light;
+  background: #ffffff;
+  color: #000000;
+  font-family: "Courier New", "Lucida Console", Monaco, monospace;
+  image-rendering: pixelated;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    #ffffff;
+  background-size: 12px 12px;
+}
+
+button {
+  font: inherit;
+}
+
+.dashboard {
+  display: grid;
+  gap: 14px;
+  height: 100vh;
+  margin: 0;
+  overflow: hidden;
+  padding: 16px;
+  width: 100vw;
+}
+
+.header {
+  align-items: center;
+  background: #ffffff;
+  border: 4px solid #000000;
+  box-shadow: 8px 8px 0 #000000;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 0;
+  padding: 14px 18px;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(28px, 4vw, 44px);
+  letter-spacing: -0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+h2,
+h3,
+strong {
+  letter-spacing: -0.04em;
+}
+
+.eyebrow,
+.label {
+  color: #000000;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.connectionStatus {
+  align-items: center;
+  background: #ffffff;
+  border: 3px solid #000000;
+  box-shadow: 4px 4px 0 #000000;
+  display: flex;
+  font-weight: 700;
+  gap: 8px;
+  padding: 10px 14px;
+  text-transform: uppercase;
+}
+
+.statusDot {
+  border: 2px solid #000000;
+  display: block;
+  height: 12px;
+  width: 12px;
+}
+
+.connectionStatus.connected .statusDot {
+  background: #000000;
+}
+
+.connectionStatus.reconnecting .statusDot {
+  background: repeating-linear-gradient(45deg, #000000 0 3px, #ffffff 3px 6px);
+}
+
+.connectionStatus.disconnected .statusDot {
+  background: #ffffff;
+}
+
+.symbolTabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.symbolTab {
+  background: #ffffff;
+  border: 3px solid #000000;
+  box-shadow: 4px 4px 0 #000000;
+  color: #000000;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 10px 16px;
+  text-transform: uppercase;
+}
+
+.symbolTab.active,
+.symbolTab:hover {
+  background: #000000;
+  box-shadow: 4px 4px 0 #777777;
+  color: #ffffff;
+}
+
+.tickerCard,
+.panel {
+  background: #ffffff;
+  border: 4px solid #000000;
+  box-shadow: 8px 8px 0 #000000;
+}
+
+.tickerCard {
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin-bottom: 0;
+}
+
+.tickerCard > div {
+  border-right: 2px solid #000000;
+  padding: 18px;
+}
+
+.tickerCard > div:last-child {
+  border-right: 0;
+}
+
+.tickerCard strong {
+  display: block;
+  font-size: 20px;
+  margin-top: 6px;
+}
+
+.positive {
+  color: #000000;
+}
+
+.negative {
+  background: #000000;
+  color: #ffffff;
+  padding: 0 4px;
+}
+
+.panel {
+  padding: 0;
+}
+
+.panelHeader {
+  align-items: center;
+  border-bottom: 4px solid #000000;
+  color: #000000;
+  display: flex;
+  justify-content: space-between;
+  padding: 18px;
+}
+
+.panelHeader h3 {
+  color: #000000;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+.panelHeader span {
+  border: 2px solid #000000;
+  font-weight: 700;
+  padding: 6px 8px;
+  text-transform: uppercase;
+}
+
+.contentGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-rows: minmax(0, 1fr) minmax(220px, 30vh);
+  min-height: 0;
+}
+
+.chartPanel {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.chartShell {
+  height: calc(100% - 78px);
+  min-height: 360px;
+  position: relative;
+  width: 100%;
+}
+
+.chartContainer {
+  height: 100%;
+  width: 100%;
+}
+
+.predictionOverlay {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 5;
+}
+
+.feedGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-height: 0;
+}
+
+.sidePanel {
+  background: #ffffff;
+  border: 4px solid #000000;
+  box-shadow: 8px 8px 0 #000000;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.sidePanelHeader {
+  background: #000000;
+  color: #ffffff;
+  font-weight: 700;
+  padding: 10px 12px;
+  text-transform: uppercase;
+}
+
+.feedItem {
+  border-top: 2px solid #000000;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+}
+
+.feedItem strong {
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.feedItem span,
+.emptyState {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.feedItem.up {
+  border-left: 8px solid #16a365;
+}
+
+.feedItem.down {
+  border-left: 8px solid #c72530;
+}
+
+.feedItem.sideways {
+  border-left: 8px solid #777777;
+}
+
+.feedItem.buy {
+  border-left: 8px solid #16a365;
+}
+
+.feedItem.sell {
+  border-left: 8px solid #c72530;
+}
+
+.feedItem.edited {
+  background: #fff7d6;
+}
+
+.feedItem.deleted {
+  background: #eeeeee;
+  opacity: 0.7;
+  text-decoration: line-through;
+}
+
+.emptyState {
+  padding: 12px;
+}
+
+@media (max-width: 900px) {
+  .header,
+  .panelHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .tickerCard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .contentGrid {
+    grid-template-rows: minmax(0, 1fr) minmax(260px, 34vh);
+  }
+
+  .feedGrid {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .tickerCard > div {
+    border-bottom: 2px solid #000000;
+  }
+}
+
+@media (max-width: 520px) {
+  .tickerCard {
+    grid-template-columns: 1fr;
+  }
+
+  .tickerCard > div {
+    border-right: 0;
+  }
+}

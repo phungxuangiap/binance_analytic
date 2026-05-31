@@ -45,15 +45,11 @@ function createNewsPredictionLoop({ broadcast, getCurrentPrice }) {
     scheduleTradeTimer(prediction.news_id, prediction.predicted_affect_start_time, async () => {
       try {
         const entryPrice = getCurrentPrice(prediction.symbol);
-        const trade = await openTradeFromPrediction({
+        await openTradeFromPrediction({
           prediction,
           entryTime: new Date().toISOString(),
           entryPrice,
         });
-
-        if (trade) {
-          broadcast(trade);
-        }
       } catch (error) {
         console.error(`[trade] failed to open ${prediction.news_id}:`, error.message);
       }

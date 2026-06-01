@@ -45,6 +45,7 @@ export function TradingPanel({ events, selectedSymbol }: TradingPanelProps) {
       ) : symbolTrades.map((trade) => (
         <article className={`feedItem ${trade.position_side.toLowerCase()}`} key={trade.news_id}>
           <strong>{trade.position_side} · {trade.status}</strong>
+          <span>horizon {trade.predicted_time_horizon} · predicted {trade.predicted_percent.toFixed(4)}%</span>
           <span>buy {formatTime(getBuyTime(trade))} · {formatPrice(getBuyPrice(trade))}</span>
           <span>sell {formatTime(getSellTime(trade))} · {formatPrice(getSellPrice(trade))}</span>
           {trade.status === 'closed' && typeof trade.pnl === 'number' && typeof trade.pnl_percent === 'number' ? (

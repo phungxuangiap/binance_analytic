@@ -1,11 +1,27 @@
 const { pool } = require('./pool');
 
+const MAX_MOVE_PERCENT_BY_SYMBOL = {
+  BTCUSDT: 0.06,
+  SOLUSDT: 0.09,
+};
+
+function impactScoreToPredictedPercent(impactScore, symbol) {
+  const safeImpact = Number.isFinite(impactScore) ? impactScore : 0;
+  const clampedImpact = Math.min(Math.max(safeImpact, 0), 100);
+  const maxMovePercent = MAX_MOVE_PERCENT_BY_SYMBOL[symbol] ?? 0.06;
+
+  return (clampedImpact / 100) * maxMovePercent;
+}
+
 function mapTradeRow(row) {
   return {
     type: 'trade',
     news_id: row.news_id,
     symbol: row.symbol,
     prediction_direction: row.prediction_direction,
+    predicted_time_horizon: row.predicted_time_horizon,
+    impact_score: Number(row.impact_score),
+    predicted_percent: Number(row.predicted_percent),
     position_side: row.position_side,
     entry_action: row.entry_action,
     exit_action: row.exit_action,
@@ -51,6 +67,9 @@ async function openTradeFromPrediction({ prediction, entryTime, entryPrice }) {
         news_id,
         symbol,
         prediction_direction,
+        predicted_time_horizon,
+        impact_score,
+        predicted_percent,
         position_side,
         entry_action,
         entry_time,
@@ -58,7 +77,7 @@ async function openTradeFromPrediction({ prediction, entryTime, entryPrice }) {
         status,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, 'open', NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'open', NOW())
       ON CONFLICT (news_id) DO NOTHING
       RETURNING *
     `,
@@ -66,6 +85,9 @@ async function openTradeFromPrediction({ prediction, entryTime, entryPrice }) {
       prediction.news_id,
       prediction.symbol,
       prediction.predicted_direction,
+      prediction.predicted_time_horizon,
+      prediction.impact_score,
+      impactScoreToPredictedPercent(prediction.impact_score, prediction.symbol),
       getTradeSide(prediction),
       getEntryAction(prediction),
       entryTime,

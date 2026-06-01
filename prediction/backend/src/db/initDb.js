@@ -75,6 +75,9 @@ async function createSchema() {
       news_id TEXT PRIMARY KEY,
       symbol TEXT NOT NULL,
       prediction_direction TEXT NOT NULL,
+      predicted_time_horizon TEXT NOT NULL,
+      impact_score NUMERIC NOT NULL,
+      predicted_percent NUMERIC NOT NULL,
       position_side TEXT NOT NULL,
       entry_action TEXT NOT NULL,
       exit_action TEXT,
@@ -89,6 +92,13 @@ async function createSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `);
+
+  await pool.query(`
+    ALTER TABLE trades
+    ADD COLUMN IF NOT EXISTS predicted_time_horizon TEXT,
+    ADD COLUMN IF NOT EXISTS impact_score NUMERIC,
+    ADD COLUMN IF NOT EXISTS predicted_percent NUMERIC
   `);
 
   await pool.query(`

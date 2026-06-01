@@ -98,6 +98,9 @@ export type TradeItem = {
   news_id: string;
   symbol: MarketSymbol;
   prediction_direction: PredictionDirection;
+  predicted_time_horizon: string;
+  impact_score: number;
+  predicted_percent: number;
   position_side: PositionSide;
   entry_action: TradingAction;
   exit_action?: TradingAction;

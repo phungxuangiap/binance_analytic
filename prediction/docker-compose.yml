@@ -16,6 +16,8 @@ services:
     build:
       context: ./backend
     container_name: prediction-backend
+    env_file:
+      - ./backend/.env
     environment:
       PORT: 4000
       DATABASE_URL: postgres://prediction:prediction@postgres:5432/prediction

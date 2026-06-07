@@ -1,7 +1,7 @@
 const { createFakeNews } = require('./fakeNewsGenerator');
 const { insertNews } = require('../db/newsRepository');
 const { closeTrade, openTradeFromPrediction } = require('../db/tradeRepository');
-const { createFakePrediction } = require('../prediction/fakePredictor');
+const { createPrediction } = require('../prediction/fakePredictor');
 const { resolvePrediction } = require('../prediction/predictionResolver');
 
 const MIN_NEWS_DELAY_MS = Number(process.env.FAKE_NEWS_MIN_DELAY_MS || 8000);
@@ -83,7 +83,7 @@ function createNewsPredictionLoop({ broadcast, getCurrentPrice }) {
         return;
       }
 
-      const prediction = createFakePrediction(news);
+      const prediction = await createPrediction(news);
 
       if (prediction.predicted_direction === 'SIDEWAYS') {
         console.log(`[prediction] ignored sideways ${prediction.symbol} news ${news.id}`);

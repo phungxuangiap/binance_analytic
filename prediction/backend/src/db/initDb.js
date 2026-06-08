@@ -57,7 +57,7 @@ async function createSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS news (
       id TEXT PRIMARY KEY,
-      symbol TEXT NOT NULL,
+      symbol TEXT,
       title TEXT NOT NULL,
       description TEXT,
       source TEXT NOT NULL,
@@ -69,6 +69,11 @@ async function createSchema() {
   await pool.query(`
     ALTER TABLE news
     ADD COLUMN IF NOT EXISTS description TEXT
+  `);
+
+  await pool.query(`
+    ALTER TABLE news
+    ALTER COLUMN symbol DROP NOT NULL
   `);
 
   await pool.query(`

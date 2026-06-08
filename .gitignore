@@ -9,6 +9,8 @@ out/
 dist/
 build/
 coverage/
+.venv/
+
 
 # Runtime data
 *.log

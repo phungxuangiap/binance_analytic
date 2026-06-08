@@ -37,6 +37,23 @@ services:
       - postgres
     restart: unless-stopped
 
+  news-crawler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.crawler
+    container_name: prediction-news-crawler
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgres://prediction:prediction@postgres:5432/prediction
+      CRAWL_INTERVAL_SECONDS: 900
+    command: python src/scripts/scheduled_crawl_news.py
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend

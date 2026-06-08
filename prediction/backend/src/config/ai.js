@@ -8,6 +8,7 @@ News:
 - source: ${input.source || 'unknown'}
 - published_at: ${input.publishedAt || 'unknown'}
 - target_symbols: ${(input.targetSymbols || []).join(', ') || 'unknown'}
+- description: ${input.description || 'N/A'}
 - content: ${input.content || 'N/A'}
 
 Return only JSON with this exact schema:

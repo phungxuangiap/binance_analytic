@@ -31,6 +31,7 @@ function createFakeNews() {
       id: `news_${now.getTime()}_${Math.random().toString(16).slice(2, 8)}`,
       symbol,
       title: `${symbol}: ${randomItem(TOPICS)}`,
+      description: `Simulated market news for ${symbol} generated to evaluate short-term prediction impact on crypto price movement.`,
       source: 'Fake Market News',
       time: now.toISOString(),
     },

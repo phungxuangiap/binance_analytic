@@ -59,10 +59,16 @@ async function createSchema() {
       id TEXT PRIMARY KEY,
       symbol TEXT NOT NULL,
       title TEXT NOT NULL,
+      description TEXT,
       source TEXT NOT NULL,
       time TIMESTAMPTZ NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `);
+
+  await pool.query(`
+    ALTER TABLE news
+    ADD COLUMN IF NOT EXISTS description TEXT
   `);
 
   await pool.query(`

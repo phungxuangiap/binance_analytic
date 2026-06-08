@@ -48,6 +48,7 @@ function createPredictionInput(news) {
     source: news.source,
     publishedAt: news.time,
     targetSymbols: [news.symbol],
+    description: news.description,
     content: news.content,
   };
 }
@@ -80,6 +81,7 @@ async function requestGroqPrediction(input) {
     source: input.source,
     publishedAt: input.publishedAt,
     targetSymbols: input.targetSymbols,
+    hasDescription: Boolean(input.description),
     hasContent: Boolean(input.content),
   });
 
@@ -137,6 +139,7 @@ async function createPrediction(news) {
     newsId: news.id,
     symbol: news.symbol,
     title: news.title,
+    description: news.description,
     source: news.source,
     time: news.time,
   });

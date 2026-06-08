@@ -6,6 +6,7 @@ function mapNewsRow(row) {
     id: row.id,
     symbol: row.symbol,
     title: row.title,
+    description: row.description,
     source: row.source,
     time: new Date(row.time).toISOString(),
   };
@@ -18,14 +19,16 @@ async function insertNews(news) {
         id,
         symbol,
         title,
+        description,
         source,
         time
       )
-      VALUES ($1, $2, $3, $4, $5)
+      VALUES ($1, $2, $3, $4, $5, $6)
       ON CONFLICT (id)
       DO UPDATE SET
         symbol = EXCLUDED.symbol,
         title = EXCLUDED.title,
+        description = EXCLUDED.description,
         source = EXCLUDED.source,
         time = EXCLUDED.time
       RETURNING *
@@ -34,6 +37,7 @@ async function insertNews(news) {
       news.id,
       news.symbol,
       news.title,
+      news.description ?? null,
       news.source,
       news.time,
     ],

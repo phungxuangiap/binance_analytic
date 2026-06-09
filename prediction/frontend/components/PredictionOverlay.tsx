@@ -11,6 +11,8 @@ type PredictionOverlayProps = {
   selectedSymbol: MarketSymbol;
   predictions: PredictionItem[];
   candles: CandleMessage[];
+  highlightedNewsId?: string | null;
+  onHoveredNewsChange?: (newsId: string | null) => void;
 };
 
 const COLORS: Record<PredictionDirection, { fill: string; stroke: string }> = {
@@ -89,10 +91,14 @@ function timeToOverlayCoordinate(chart: IChartApi, candles: CandleMessage[], tim
   return firstPoint.coordinate + (timestamp - firstPoint.time) * pixelsPerSecond;
 }
 
-export function PredictionOverlay({ chart, series, selectedSymbol, predictions, candles }: PredictionOverlayProps) {
+export function PredictionOverlay({ chart, series, selectedSymbol, predictions, candles, highlightedNewsId, onHoveredNewsChange }: PredictionOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fixedRectanglesRef = useRef<Map<string, PredictionRectangle>>(new Map());
   const hoveredNewsIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    hoveredNewsIdRef.current = highlightedNewsId || null;
+  }, [highlightedNewsId]);
 
   const rectangles = useMemo(() => {
     const selectedPredictions = predictions
@@ -197,12 +203,19 @@ export function PredictionOverlay({ chart, series, selectedSymbol, predictions, 
       for (const drawableRectangle of getDrawableRectangles()) {
         const { rectangle, x1Number, x2Number, yTopNumber, yBottomNumber, left, width, top, height } = drawableRectangle;
         const colors = COLORS[rectangle.prediction.predicted_direction];
+        const isHighlighted = hoveredNewsIdRef.current === rectangle.prediction.news_id;
 
         ctx.fillStyle = colors.fill;
         ctx.strokeStyle = colors.stroke;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = isHighlighted ? 4 : 2;
         ctx.fillRect(left, top, width, height);
         ctx.strokeRect(left, top, width, height);
+
+        if (isHighlighted) {
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(left - 3, top - 3, width + 6, height + 6);
+        }
 
         let arrowStartX = x1Number;
         let arrowStartY = yBottomNumber;
@@ -229,7 +242,7 @@ export function PredictionOverlay({ chart, series, selectedSymbol, predictions, 
         ctx.stroke();
         drawArrowHead(ctx, arrowStartX, arrowStartY, arrowEndX, arrowEndY);
 
-        if (hoveredNewsIdRef.current === rectangle.prediction.news_id) {
+        if (isHighlighted) {
           const sign = rectangle.prediction.predicted_direction === 'DOWN' ? '-' : rectangle.prediction.predicted_direction === 'UP' ? '+' : '±';
           const label = `${rectangle.prediction.predicted_direction} ${rectangle.prediction.predicted_time_horizon} | impact ${rectangle.prediction.impact_score.toFixed(2)} | ${sign}${rectangle.expectedMovePercent.toFixed(2)}%`;
           drawLabel(ctx, label, left + 4, top + 4, width);
@@ -248,6 +261,7 @@ export function PredictionOverlay({ chart, series, selectedSymbol, predictions, 
 
       if (hoveredNewsIdRef.current !== nextHoveredNewsId) {
         hoveredNewsIdRef.current = nextHoveredNewsId;
+        onHoveredNewsChange?.(nextHoveredNewsId);
         render();
       }
     }
@@ -255,6 +269,7 @@ export function PredictionOverlay({ chart, series, selectedSymbol, predictions, 
     function handlePointerLeave() {
       if (hoveredNewsIdRef.current !== null) {
         hoveredNewsIdRef.current = null;
+        onHoveredNewsChange?.(null);
         render();
       }
     }
@@ -276,7 +291,7 @@ export function PredictionOverlay({ chart, series, selectedSymbol, predictions, 
       activeChart.timeScale().unsubscribeVisibleTimeRangeChange(render);
       activeChart.timeScale().unsubscribeVisibleLogicalRangeChange(render);
     };
-  }, [candles, chart, rectangles, selectedSymbol, series]);
+  }, [candles, chart, highlightedNewsId, onHoveredNewsChange, rectangles, selectedSymbol, series]);
 
   return <canvas className="predictionOverlay" ref={canvasRef} />;
 }

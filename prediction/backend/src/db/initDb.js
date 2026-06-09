@@ -62,6 +62,7 @@ async function createSchema() {
       description TEXT,
       source TEXT NOT NULL,
       time TIMESTAMPTZ NOT NULL,
+      status TEXT NOT NULL DEFAULT 'under_predict',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
@@ -74,6 +75,16 @@ async function createSchema() {
   await pool.query(`
     ALTER TABLE news
     ALTER COLUMN symbol DROP NOT NULL
+  `);
+
+  await pool.query(`
+    ALTER TABLE news
+    ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'under_predict'
+  `);
+
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS news_title_unique_idx
+    ON news (title)
   `);
 
   await pool.query(`

@@ -9,6 +9,7 @@ function mapNewsRow(row) {
     description: row.description,
     source: row.source,
     time: new Date(row.time).toISOString(),
+    status: row.status,
   };
 }
 
@@ -21,16 +22,18 @@ async function insertNews(news) {
         title,
         description,
         source,
-        time
+        time,
+        status
       )
-      VALUES ($1, $2, $3, $4, $5, $6)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       ON CONFLICT (id)
       DO UPDATE SET
         symbol = EXCLUDED.symbol,
         title = EXCLUDED.title,
         description = EXCLUDED.description,
         source = EXCLUDED.source,
-        time = EXCLUDED.time
+        time = EXCLUDED.time,
+        status = EXCLUDED.status
       RETURNING *
     `,
     [
@@ -40,10 +43,42 @@ async function insertNews(news) {
       news.description ?? null,
       news.source,
       news.time,
+      news.status || 'under_predict',
     ],
   );
 
   return mapNewsRow(result.rows[0]);
+}
+
+async function getNewestNewsByStatus({ status, limit }) {
+  const result = await pool.query(
+    `
+      SELECT *
+      FROM news
+      WHERE status = $1
+      ORDER BY time DESC, created_at DESC
+      LIMIT $2
+    `,
+    [status, limit],
+  );
+
+  return result.rows.map(mapNewsRow);
+}
+
+async function updateNewsStatus(id, status, symbol = null) {
+  const result = await pool.query(
+    `
+      UPDATE news
+      SET
+        status = $2,
+        symbol = COALESCE($3, symbol)
+      WHERE id = $1
+      RETURNING *
+    `,
+    [id, status, symbol],
+  );
+
+  return result.rows[0] ? mapNewsRow(result.rows[0]) : null;
 }
 
 async function getNews({ symbol, limit }) {
@@ -66,6 +101,8 @@ async function getNews({ symbol, limit }) {
 }
 
 module.exports = {
+  getNewestNewsByStatus,
   getNews,
   insertNews,
+  updateNewsStatus,
 };

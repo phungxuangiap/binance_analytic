@@ -13,6 +13,7 @@ import type { MarketSymbol } from '../types/market';
 
 export default function Home() {
   const [selectedSymbol, setSelectedSymbol] = useState<MarketSymbol>('BTCUSDT');
+  const [hoveredNewsId, setHoveredNewsId] = useState<string | null>(null);
   const { status, candles, tickers, news, predictions, tradingEvents } = useCryptoWebSocket();
 
   return (
@@ -37,12 +38,12 @@ export default function Home() {
             </div>
             <span>{candles[selectedSymbol].length} candles</span>
           </div>
-          <CryptoChart candles={candles[selectedSymbol]} predictions={predictions} selectedSymbol={selectedSymbol} />
+          <CryptoChart candles={candles[selectedSymbol]} predictions={predictions} selectedSymbol={selectedSymbol} highlightedNewsId={hoveredNewsId} onHoveredNewsChange={setHoveredNewsId} />
         </section>
 
         <aside className="feedGrid">
-          <NewsPanel news={news} selectedSymbol={selectedSymbol} />
-          <PredictionPanel predictions={predictions} selectedSymbol={selectedSymbol} />
+          <NewsPanel news={news} selectedSymbol={selectedSymbol} highlightedNewsId={hoveredNewsId} onHighlightedNewsChange={setHoveredNewsId} />
+          <PredictionPanel predictions={predictions} selectedSymbol={selectedSymbol} highlightedNewsId={hoveredNewsId} onHighlightedNewsChange={setHoveredNewsId} />
           <TradingPanel events={tradingEvents} selectedSymbol={selectedSymbol} />
         </aside>
       </div>

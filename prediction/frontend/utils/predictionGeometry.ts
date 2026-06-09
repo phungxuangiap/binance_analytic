@@ -1,10 +1,5 @@
 import type { CandleMessage, PredictionItem, PredictionRectangle } from '../types/market';
 
-const MAX_MOVE_PERCENT_BY_SYMBOL: Record<string, number> = {
-  BTCUSDT: 0.06,
-  SOLUSDT: 0.09,
-};
-
 export function parseTimeHorizonToSeconds(horizon: string): number {
   const match = horizon.match(/^(\d+)(m|h)$/);
 
@@ -22,12 +17,9 @@ export function parseTimeHorizonToSeconds(horizon: string): number {
   return unit === 'h' ? value * 3600 : value * 60;
 }
 
-export function impactScoreToPriceMovePercent(impactScore: number, symbol: string): number {
+export function impactScoreToPriceMovePercent(impactScore: number): number {
   const safeImpact = Number.isFinite(impactScore) ? impactScore : 0;
-  const clampedImpact = Math.min(Math.max(safeImpact, 0), 100);
-  const maxMovePercent = MAX_MOVE_PERCENT_BY_SYMBOL[symbol] ?? 0.06;
-
-  return (clampedImpact / 100) * maxMovePercent;
+  return Math.max(safeImpact, 0) / 100;
 }
 
 export function findNearestCandlePrice(candles: CandleMessage[], timestamp: number): number | null {
@@ -70,7 +62,7 @@ export function buildPredictionRectangle(prediction: PredictionItem, candles: Ca
     return null;
   }
 
-  const expectedMovePercent = impactScoreToPriceMovePercent(prediction.impact_score, prediction.symbol);
+  const expectedMovePercent = impactScoreToPriceMovePercent(prediction.impact_score);
 
   if (prediction.predicted_direction === 'UP') {
     const targetPrice = currentPrice * (1 + expectedMovePercent / 100);

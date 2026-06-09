@@ -9,9 +9,11 @@ type CryptoChartProps = {
   candles: CandleMessage[];
   predictions: PredictionItem[];
   selectedSymbol: MarketSymbol;
+  highlightedNewsId?: string | null;
+  onHoveredNewsChange?: (newsId: string | null) => void;
 };
 
-export function CryptoChart({ candles, predictions, selectedSymbol }: CryptoChartProps) {
+export function CryptoChart({ candles, predictions, selectedSymbol, highlightedNewsId, onHoveredNewsChange }: CryptoChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [chart, setChart] = useState<IChartApi | null>(null);
   const [series, setSeries] = useState<ISeriesApi<'Candlestick'> | null>(null);
@@ -107,6 +109,8 @@ export function CryptoChart({ candles, predictions, selectedSymbol }: CryptoChar
         predictions={predictions.filter((prediction) => prediction.status !== 'deleted')}
         selectedSymbol={selectedSymbol}
         series={series}
+        highlightedNewsId={highlightedNewsId}
+        onHoveredNewsChange={onHoveredNewsChange}
       />
     </div>
   );

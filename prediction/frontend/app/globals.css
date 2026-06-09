@@ -262,6 +262,11 @@ strong {
   text-transform: uppercase;
 }
 
+.feedItem.highlighted {
+  background: #fff7d6;
+  box-shadow: inset 0 0 0 3px #000000;
+}
+
 .feedItem span,
 .emptyState {
   font-size: 12px;

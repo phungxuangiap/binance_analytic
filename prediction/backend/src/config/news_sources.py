@@ -2,7 +2,7 @@ list_sources = [
     {
         "source_name": "allinstation",
         "url": "https://allinstation.com/tin-tuc/",
-        "entry_point": "post-title",
+        "entry_point": "col post-item",
     },
     {
         "source_name": "coindesk",

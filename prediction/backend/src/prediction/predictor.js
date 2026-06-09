@@ -1,4 +1,5 @@
 const { GROQ_MODEL, createGroqPrompt } = require('../config/ai');
+const { SYMBOLS } = require('../config/symbols');
 
 const GROQ_CHAT_COMPLETIONS_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const DEFAULT_TIME_HORIZON = '15m';
@@ -42,12 +43,56 @@ function normalizeTimeHorizon(horizon) {
   return DEFAULT_TIME_HORIZON;
 }
 
-function createPredictionInput(news) {
+function normalizeAffectStartTime(value, now) {
+  const predictedTime = new Date(value).getTime();
+
+  if (!Number.isFinite(predictedTime) || predictedTime < now) {
+    return new Date(now);
+  }
+
+  return new Date(predictedTime);
+}
+
+function normalizeSymbolValue(value) {
+  return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function mapToSupportedSymbol(value) {
+  const normalizedValue = normalizeSymbolValue(value);
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  return SYMBOLS.find(({ symbol }) => {
+    const normalizedSymbol = normalizeSymbolValue(symbol);
+    return normalizedValue === normalizedSymbol || normalizedValue === normalizedSymbol.replace(/USDT$/, '');
+  })?.symbol || null;
+}
+
+function resolvePredictionSymbol(news, aiPrediction) {
+  const newsSymbol = mapToSupportedSymbol(news.symbol);
+  if (newsSymbol) {
+    return newsSymbol;
+  }
+
+  for (const symbol of aiPrediction.symbols || []) {
+    const supportedSymbol = mapToSupportedSymbol(symbol);
+    if (supportedSymbol) {
+      return supportedSymbol;
+    }
+  }
+
+  return null;
+}
+
+function createPredictionInput(news, currentTime) {
   return {
     title: news.title,
     source: news.source,
     publishedAt: news.time,
-    targetSymbols: [news.symbol],
+    currentTime,
+    targetSymbols: news.symbol ? [news.symbol] : SYMBOLS.map(({ symbol }) => symbol),
     description: news.description,
     content: news.content,
   };
@@ -63,6 +108,7 @@ function logAiPredictionSummary(prefix, prediction) {
     sentimentScore: prediction.sentiment_score,
     impactScore: prediction.impact_score,
     predictedDirection: prediction.predicted_direction,
+    predictedAffectStartTime: prediction.predicted_affect_start_time,
     predictedTimeHorizon: prediction.predicted_time_horizon,
     confidenceScore: prediction.confidence_score,
     reasoning: prediction.reasoning,
@@ -144,16 +190,26 @@ async function createPrediction(news) {
     time: news.time,
   });
 
-  const newsTime = new Date(news.time).getTime();
-  const affectStartTime = new Date(newsTime + 60_000);
-  const aiPrediction = await requestGroqPrediction(createPredictionInput(news));
+  const now = Date.now();
+  const aiPrediction = await requestGroqPrediction(createPredictionInput(news, new Date(now).toISOString()));
+  const affectStartTime = normalizeAffectStartTime(aiPrediction.predicted_affect_start_time, now);
   const predictedDirection = mapDirection(aiPrediction.predicted_direction);
   const impactScore = clamp(Number(aiPrediction.impact_score), 0, 1) * 100;
+  const symbol = resolvePredictionSymbol(news, aiPrediction);
+
+  if (!symbol) {
+    console.log('[prediction:ai] skipped unsupported symbol', {
+      newsId: news.id,
+      newsSymbol: news.symbol,
+      aiSymbols: aiPrediction.symbols,
+    });
+    return null;
+  }
 
   const prediction = {
     type: 'prediction',
     news_id: news.id,
-    symbol: news.symbol,
+    symbol,
     predicted_direction: aiPrediction.is_relevant === false ? 'SIDEWAYS' : predictedDirection,
     predicted_time_horizon: normalizeTimeHorizon(aiPrediction.predicted_time_horizon),
     impact_score: Number(impactScore.toFixed(2)),
@@ -164,10 +220,13 @@ async function createPrediction(news) {
   console.log('[prediction:ai] mapped prediction', {
     newsId: prediction.news_id,
     symbol: prediction.symbol,
+    newsSymbol: news.symbol,
+    aiSymbols: aiPrediction.symbols,
     aiDirection: aiPrediction.predicted_direction,
     internalDirection: prediction.predicted_direction,
     aiImpactScore: aiPrediction.impact_score,
     internalImpactScore: prediction.impact_score,
+    aiAffectStartTime: aiPrediction.predicted_affect_start_time,
     aiTimeHorizon: aiPrediction.predicted_time_horizon,
     internalTimeHorizon: prediction.predicted_time_horizon,
     affectStartTime: prediction.predicted_affect_start_time,

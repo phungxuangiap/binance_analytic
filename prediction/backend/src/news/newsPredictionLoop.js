@@ -1,18 +1,10 @@
-const { createFakeNews } = require('./fakeNewsGenerator');
-const { insertNews } = require('../db/newsRepository');
+const { getNewestNewsByStatus, updateNewsStatus } = require('../db/newsRepository');
 const { closeTrade, openTradeFromPrediction } = require('../db/tradeRepository');
-const { createPrediction } = require('../prediction/fakePredictor');
+const { createPrediction } = require('../prediction/predictor');
 const { resolvePrediction } = require('../prediction/predictionResolver');
 
-const MIN_NEWS_DELAY_MS = Number(process.env.FAKE_NEWS_MIN_DELAY_MS || 8000);
-const MAX_NEWS_DELAY_MS = Number(process.env.FAKE_NEWS_MAX_DELAY_MS || 15000);
-
-function getNextDelayMs() {
-  const minDelay = Math.max(1000, Math.min(MIN_NEWS_DELAY_MS, MAX_NEWS_DELAY_MS));
-  const maxDelay = Math.max(minDelay, MAX_NEWS_DELAY_MS);
-
-  return Math.floor(minDelay + Math.random() * (maxDelay - minDelay + 1));
-}
+const NEWS_PREDICTION_INTERVAL_MS = Number(process.env.NEWS_PREDICTION_INTERVAL_MS || 10 * 60 * 1000);
+const NEWS_PREDICTION_BATCH_SIZE = Number(process.env.NEWS_PREDICTION_BATCH_SIZE || 10);
 
 function createNewsPredictionLoop({ broadcast, getCurrentPrice }) {
   let timer = null;
@@ -73,60 +65,82 @@ function createNewsPredictionLoop({ broadcast, getCurrentPrice }) {
     });
   }
 
+  async function markNewsPredicted(news, symbol = null) {
+    const updatedNews = await updateNewsStatus(news.id, 'predicted', symbol);
+    if (updatedNews) {
+      broadcast(updatedNews);
+    }
+    return updatedNews;
+  }
+
+  async function processNews(news) {
+    console.log('[prediction] processing news', {
+      newsId: news.id,
+      title: news.title,
+      source: news.source,
+      status: news.status,
+    });
+
+    const prediction = await createPrediction(news);
+
+    if (!prediction || prediction.predicted_direction === 'SIDEWAYS') {
+      console.log('[prediction] marked news predicted without actionable signal', {
+        newsId: news.id,
+        direction: prediction?.predicted_direction,
+      });
+      await markNewsPredicted(news, prediction?.symbol);
+      return;
+    }
+
+    const predictionEvents = await resolvePrediction(prediction);
+    await markNewsPredicted(news, prediction.symbol);
+
+    if (predictionEvents.length === 0) {
+      console.log(`[prediction] ignored conflicted ${prediction.symbol} ${prediction.predicted_direction} news ${news.id}`);
+      return;
+    }
+
+    console.log(`[prediction] resolved ${prediction.symbol} ${prediction.predicted_direction} ${prediction.predicted_time_horizon} impact=${prediction.impact_score} events=${predictionEvents.length}`);
+
+    for (const event of predictionEvents) {
+      broadcast(event);
+
+      if (event.type === 'prediction' && event.status !== 'deleted') {
+        scheduleTrade(event);
+      }
+    }
+  }
+
   async function publish() {
     try {
-      const { news, impactType } = createFakeNews();
+      const newsItems = await getNewestNewsByStatus({
+        status: 'under_predict',
+        limit: NEWS_PREDICTION_BATCH_SIZE,
+      });
 
-      if (impactType === 'neutral') {
-        console.log(`[news] ignored neutral ${news.symbol} news ${news.id}`);
-        scheduleNext();
-        return;
-      }
+      console.log(`[prediction] loaded under_predict news count=${newsItems.length}`);
 
-      const prediction = await createPrediction(news);
-
-      if (prediction.predicted_direction === 'SIDEWAYS') {
-        console.log(`[prediction] ignored sideways ${prediction.symbol} news ${news.id}`);
-        scheduleNext();
-        return;
-      }
-
-      const predictionEvents = await resolvePrediction(prediction);
-
-      if (predictionEvents.length === 0) {
-        console.log(`[prediction] ignored conflicted ${prediction.symbol} ${prediction.predicted_direction} news ${news.id}`);
-        scheduleNext();
-        return;
-      }
-
-      const persistedNews = await insertNews(news);
-
-      console.log(`[news] generated ${news.symbol} ${impactType} news ${news.id}`);
-      console.log(`[prediction] resolved ${prediction.symbol} ${prediction.predicted_direction} ${prediction.predicted_time_horizon} impact=${prediction.impact_score} events=${predictionEvents.length}`);
-
-      broadcast(persistedNews);
-      for (const event of predictionEvents) {
-        broadcast(event);
-
-        if (event.type === 'prediction' && event.status !== 'deleted') {
-          scheduleTrade(event);
+      for (const news of newsItems) {
+        try {
+          await processNews(news);
+        } catch (error) {
+          console.error(`[prediction] failed to process news ${news.id}:`, error.message);
         }
       }
-      scheduleNext();
     } catch (error) {
-      console.error('[prediction] failed to resolve prediction:', error.message);
+      console.error('[prediction] failed to load under_predict news:', error.message);
+    } finally {
       scheduleNext();
     }
   }
 
   function scheduleNext() {
-    const nextDelayMs = getNextDelayMs();
-    console.log(`[news] next fake news in ${nextDelayMs}ms`);
-    timer = setTimeout(publish, nextDelayMs);
+    console.log(`[prediction] next DB news prediction in ${NEWS_PREDICTION_INTERVAL_MS}ms`);
+    timer = setTimeout(publish, NEWS_PREDICTION_INTERVAL_MS);
   }
 
   function start() {
-    scheduleNext();
+    publish();
   }
 
   function stop() {

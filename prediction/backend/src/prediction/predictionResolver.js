@@ -6,6 +6,7 @@ const {
 } = require('../db/predictionRepository');
 
 const IMPACT_SCORE_DIFF_THRESHOLD = 50;
+const MIN_SHORTENED_HORIZON_SECONDS = 60;
 
 function parseTimeHorizonToSeconds(horizon) {
   const match = horizon.match(/^(\d+)(m|h)$/);
@@ -172,7 +173,7 @@ async function resolvePrediction(rawPrediction) {
       shortenedHorizonSeconds,
     });
 
-    if (shortenedHorizonSeconds > 0) {
+    if (shortenedHorizonSeconds > MIN_SHORTENED_HORIZON_SECONDS) {
       const nextHorizon = formatTimeHorizon(shortenedHorizonSeconds);
       const updatedExistingPrediction = await updatePrediction(existingPrediction.news_id, {
         predicted_time_horizon: nextHorizon,
@@ -194,9 +195,11 @@ async function resolvePrediction(rawPrediction) {
       }
     } else {
       await deactivatePrediction(existingPrediction.news_id);
-      events.push(createDeleteEvent(existingPrediction, `opposite direction overlap: incoming ${prediction.news_id} starts before existing prediction, so existing duration is invalid`));
-      console.log('[prediction:merge] deleted existing prediction because incoming starts before existing', {
+      events.push(createDeleteEvent(existingPrediction, `opposite direction overlap: incoming ${prediction.news_id} starts within ${MIN_SHORTENED_HORIZON_SECONDS} seconds of existing prediction, so incoming replaces existing`));
+      console.log('[prediction:merge] deleted existing prediction because incoming starts too close to existing', {
         existingNewsId: existingPrediction.news_id,
+        incomingNewsId: prediction.news_id,
+        shortenedHorizonSeconds,
       });
     }
 

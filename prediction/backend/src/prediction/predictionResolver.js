@@ -5,7 +5,7 @@ const {
   updatePrediction,
 } = require('../db/predictionRepository');
 
-const IMPACT_SCORE_DIFF_THRESHOLD = 50;
+const IMPACT_SCORE_DIFF_THRESHOLD = 0.5;
 const MIN_SHORTENED_HORIZON_SECONDS = 60;
 
 function parseTimeHorizonToSeconds(horizon) {

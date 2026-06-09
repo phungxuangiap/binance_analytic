@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { ConnectionStatus } from '../components/ConnectionStatus';
 import { CryptoChart } from '../components/CryptoChart';
 import { NewsPanel } from '../components/NewsPanel';
 import { PredictionPanel } from '../components/PredictionPanel';
@@ -14,18 +13,10 @@ import type { MarketSymbol } from '../types/market';
 export default function Home() {
   const [selectedSymbol, setSelectedSymbol] = useState<MarketSymbol>('BTCUSDT');
   const [hoveredNewsId, setHoveredNewsId] = useState<string | null>(null);
-  const { status, candles, tickers, news, predictions, tradingEvents } = useCryptoWebSocket();
+  const { candles, tickers, news, predictions, tradingEvents } = useCryptoWebSocket();
 
   return (
     <main className="dashboard">
-      <header className="header">
-        <div>
-          <p className="eyebrow">Binance Realtime Market Data</p>
-          <h1>Market Data</h1>
-        </div>
-        <ConnectionStatus status={status} />
-      </header>
-
       <SymbolTabs selectedSymbol={selectedSymbol} onSelectSymbol={setSelectedSymbol} />
       <TickerCard symbol={selectedSymbol} ticker={tickers[selectedSymbol]} />
 
@@ -44,7 +35,7 @@ export default function Home() {
         <aside className="feedGrid">
           <NewsPanel news={news} selectedSymbol={selectedSymbol} highlightedNewsId={hoveredNewsId} onHighlightedNewsChange={setHoveredNewsId} />
           <PredictionPanel predictions={predictions} selectedSymbol={selectedSymbol} highlightedNewsId={hoveredNewsId} onHighlightedNewsChange={setHoveredNewsId} />
-          <TradingPanel events={tradingEvents} selectedSymbol={selectedSymbol} />
+          <TradingPanel events={tradingEvents} selectedSymbol={selectedSymbol} highlightedNewsId={hoveredNewsId} onHighlightedNewsChange={setHoveredNewsId} />
         </aside>
       </div>
     </main>

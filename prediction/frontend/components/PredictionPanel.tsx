@@ -35,7 +35,7 @@ export function PredictionPanel({ predictions, selectedSymbol, highlightedNewsId
             onMouseLeave={() => onHighlightedNewsChange?.(null)}
           >
             <strong>{prediction.predicted_direction} · {prediction.predicted_time_horizon} · {status}{prediction.status !== 'deleted' && prediction.lifecycleStatus ? ` · ${prediction.lifecycleStatus}` : ''}</strong>
-            <span>impact {prediction.impact_score.toFixed(2)} · {sign}{move.toFixed(2)}% · {new Date(prediction.predicted_affect_start_time).toLocaleTimeString()}{editText}</span>
+            <span>impact {prediction.impact_score.toFixed(6)} · {sign}{move.toFixed(2)}% · {new Date(prediction.predicted_affect_start_time).toLocaleTimeString()}{editText}</span>
             {prediction.reason ? <span>reason: {prediction.reason}</span> : null}
           </article>
         );

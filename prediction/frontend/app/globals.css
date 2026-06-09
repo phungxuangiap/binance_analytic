@@ -47,11 +47,11 @@ button:focus-visible {
 
 .dashboard {
   display: grid;
-  gap: 18px;
+  gap: 14px;
   height: 100vh;
   margin: 0;
   overflow: hidden;
-  padding: 18px;
+  padding: 14px;
   width: 100vw;
 }
 
@@ -197,7 +197,7 @@ strong {
 
 .tickerCard > div {
   border-right: 1px solid var(--border);
-  padding: 18px;
+  padding: 14px 18px;
 }
 
 .tickerCard > div:last-child {
@@ -210,7 +210,7 @@ strong {
   display: block;
   font-family: var(--mono);
   font-size: 20px;
-  margin-top: 8px;
+  margin-top: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -257,8 +257,8 @@ strong {
 
 .contentGrid {
   display: grid;
-  gap: 16px;
-  grid-template-rows: minmax(0, 1fr) minmax(220px, 30vh);
+  gap: 14px;
+  grid-template-rows: minmax(0, 1fr) minmax(180px, 24vh);
   min-height: 0;
 }
 
@@ -270,8 +270,8 @@ strong {
 
 .chartShell {
   background: #11141a;
-  height: calc(100% - 78px);
-  min-height: 360px;
+  height: calc(100% - 68px);
+  min-height: 460px;
   position: relative;
   width: 100%;
 }
@@ -311,7 +311,10 @@ strong {
   font-weight: 800;
   letter-spacing: 0.04em;
   padding: 13px 14px;
+  position: sticky;
+  top: 0;
   text-transform: uppercase;
+  z-index: 2;
 }
 
 .feedItem {

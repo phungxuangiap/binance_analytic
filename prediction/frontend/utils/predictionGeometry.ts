@@ -19,7 +19,7 @@ export function parseTimeHorizonToSeconds(horizon: string): number {
 
 export function impactScoreToPriceMovePercent(impactScore: number): number {
   const safeImpact = Number.isFinite(impactScore) ? impactScore : 0;
-  return Math.max(safeImpact, 0) / 100;
+  return Math.max(safeImpact, 0) * 100;
 }
 
 export function findNearestCandlePrice(candles: CandleMessage[], timestamp: number): number | null {

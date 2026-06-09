@@ -1,16 +1,8 @@
 const { pool } = require('./pool');
 
-const MAX_MOVE_PERCENT_BY_SYMBOL = {
-  BTCUSDT: 0.06,
-  SOLUSDT: 0.09,
-};
-
-function impactScoreToPredictedPercent(impactScore, symbol) {
+function impactScoreToPredictedPercent(impactScore) {
   const safeImpact = Number.isFinite(impactScore) ? impactScore : 0;
-  const clampedImpact = Math.min(Math.max(safeImpact, 0), 100);
-  const maxMovePercent = MAX_MOVE_PERCENT_BY_SYMBOL[symbol] ?? 0.06;
-
-  return (clampedImpact / 100) * maxMovePercent;
+  return Math.max(safeImpact, 0) * 100;
 }
 
 function mapTradeRow(row) {
@@ -87,7 +79,7 @@ async function openTradeFromPrediction({ prediction, entryTime, entryPrice }) {
       prediction.predicted_direction,
       prediction.predicted_time_horizon,
       prediction.impact_score,
-      impactScoreToPredictedPercent(prediction.impact_score, prediction.symbol),
+      impactScoreToPredictedPercent(prediction.impact_score),
       getTradeSide(prediction),
       getEntryAction(prediction),
       entryTime,

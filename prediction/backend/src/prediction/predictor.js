@@ -194,7 +194,7 @@ async function createPrediction(news) {
   const aiPrediction = await requestGroqPrediction(createPredictionInput(news, new Date(now).toISOString()));
   const affectStartTime = normalizeAffectStartTime(aiPrediction.predicted_affect_start_time, now);
   const predictedDirection = mapDirection(aiPrediction.predicted_direction);
-  const impactScore = clamp(Number(aiPrediction.impact_score), 0, 1) * 100;
+  const impactScore = clamp(Number(aiPrediction.impact_score), 0, 1);
   const symbol = resolvePredictionSymbol(news, aiPrediction);
 
   if (!symbol) {
@@ -212,7 +212,7 @@ async function createPrediction(news) {
     symbol,
     predicted_direction: aiPrediction.is_relevant === false ? 'SIDEWAYS' : predictedDirection,
     predicted_time_horizon: normalizeTimeHorizon(aiPrediction.predicted_time_horizon),
-    impact_score: Number(impactScore.toFixed(2)),
+    impact_score: Number(impactScore.toFixed(6)),
     predicted_affect_start_time: affectStartTime.toISOString(),
     ai_prediction: aiPrediction,
   };

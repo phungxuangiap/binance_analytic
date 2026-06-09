@@ -244,7 +244,7 @@ export function PredictionOverlay({ chart, series, selectedSymbol, predictions, 
 
         if (isHighlighted) {
           const sign = rectangle.prediction.predicted_direction === 'DOWN' ? '-' : rectangle.prediction.predicted_direction === 'UP' ? '+' : '±';
-          const label = `${rectangle.prediction.predicted_direction} ${rectangle.prediction.predicted_time_horizon} | impact ${rectangle.prediction.impact_score.toFixed(2)} | ${sign}${rectangle.expectedMovePercent.toFixed(2)}%`;
+          const label = `${rectangle.prediction.predicted_direction} ${rectangle.prediction.predicted_time_horizon} | impact ${rectangle.prediction.impact_score.toFixed(6)} | ${sign}${rectangle.expectedMovePercent.toFixed(2)}%`;
           drawLabel(ctx, label, left + 4, top + 4, width);
         }
       }

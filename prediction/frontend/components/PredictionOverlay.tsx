@@ -16,9 +16,9 @@ type PredictionOverlayProps = {
 };
 
 const COLORS: Record<PredictionDirection, { fill: string; stroke: string }> = {
-  UP: { fill: 'rgba(22, 199, 132, 0.16)', stroke: '#16a365' },
-  DOWN: { fill: 'rgba(234, 57, 67, 0.15)', stroke: '#c72530' },
-  SIDEWAYS: { fill: 'rgba(180, 180, 180, 0.18)', stroke: '#6f6f6f' },
+  UP: { fill: 'rgba(34, 197, 94, 0.16)', stroke: '#22c55e' },
+  DOWN: { fill: 'rgba(239, 68, 68, 0.16)', stroke: '#ef4444' },
+  SIDEWAYS: { fill: 'rgba(156, 163, 175, 0.16)', stroke: '#9ca3af' },
 };
 
 function drawArrowHead(ctx: CanvasRenderingContext2D, fromX: number, fromY: number, toX: number, toY: number) {
@@ -37,11 +37,11 @@ function drawLabel(ctx: CanvasRenderingContext2D, label: string, x: number, y: n
   ctx.font = '12px Courier New, monospace';
   const width = Math.min(ctx.measureText(label).width + 8, Math.max(maxWidth - 8, 80));
 
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+  ctx.fillStyle = 'rgba(23, 26, 33, 0.96)';
   ctx.fillRect(x, y, width, 18);
-  ctx.strokeStyle = '#000000';
+  ctx.strokeStyle = 'rgba(249, 115, 22, 0.7)';
   ctx.strokeRect(x, y, width, 18);
-  ctx.fillStyle = '#000000';
+  ctx.fillStyle = '#f3f4f6';
   ctx.fillText(label, x + 4, y + 13, width - 8);
 }
 
@@ -212,7 +212,7 @@ export function PredictionOverlay({ chart, series, selectedSymbol, predictions, 
         ctx.strokeRect(left, top, width, height);
 
         if (isHighlighted) {
-          ctx.strokeStyle = '#000000';
+          ctx.strokeStyle = '#f9735b';
           ctx.lineWidth = 2;
           ctx.strokeRect(left - 3, top - 3, width + 6, height + 6);
         }

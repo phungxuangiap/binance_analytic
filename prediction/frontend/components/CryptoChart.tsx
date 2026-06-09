@@ -49,31 +49,31 @@ export function CryptoChart({ candles, predictions, selectedSymbol, highlightedN
     const chartInstance = createChart(containerRef.current, {
       autoSize: true,
       layout: {
-        background: { type: ColorType.Solid, color: '#ffffff' },
-        fontFamily: 'Courier New, monospace',
-        textColor: '#000000',
+        background: { type: ColorType.Solid, color: '#11141a' },
+        fontFamily: 'Inter, Geist, system-ui, sans-serif',
+        textColor: '#9ca3af',
       },
       grid: {
-        vertLines: { color: '#d0d0d0', style: 2 },
-        horzLines: { color: '#d0d0d0', style: 2 },
+        vertLines: { color: 'rgba(255, 255, 255, 0.06)', style: 2 },
+        horzLines: { color: 'rgba(255, 255, 255, 0.06)', style: 2 },
       },
       rightPriceScale: {
-        borderColor: '#000000',
+        borderColor: '#2a2f3a',
       },
       timeScale: {
-        borderColor: '#000000',
+        borderColor: '#2a2f3a',
         timeVisible: true,
         secondsVisible: false,
       },
     });
 
     const seriesInstance = chartInstance.addSeries(CandlestickSeries, {
-      upColor: '#ffffff',
-      downColor: '#000000',
-      borderUpColor: '#000000',
-      borderDownColor: '#000000',
-      wickUpColor: '#000000',
-      wickDownColor: '#000000',
+      upColor: 'rgba(34, 197, 94, 0.24)',
+      downColor: 'rgba(239, 68, 68, 0.24)',
+      borderUpColor: '#22c55e',
+      borderDownColor: '#ef4444',
+      wickUpColor: '#22c55e',
+      wickDownColor: '#ef4444',
     });
 
     setChart(chartInstance);

@@ -6,6 +6,8 @@ This project is a real-time cryptocurrency market prediction and analytics platf
 
 The project is designed to solve a practical trading-system problem: combining real-time exchange data, persistent historical candles, prediction visualization, event streaming, and analytics dashboards into one end-to-end decision-support system.
 
+<img width="1920" height="1080" alt="INGESTION" src="https://github.com/user-attachments/assets/034643d4-b0ff-41d0-9e47-7af69ede22a7" />
+
 ## Project Goals
 
 - Build a real-time trading dashboard for Binance crypto pairs.
